@@ -60,7 +60,7 @@ exports.sendMessage = async (req, res) => {
 exports.getAllMessages = async (req, res) => {
   try {
     // Check if the user is admin
-    if (!req.user || req.user.role !== 'admin') {
+    if (!req.user || req.user.roleid !==1) {
       return res.status(403).json({ error: "Access denied. Admins only." });
     }
 

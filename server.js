@@ -6,14 +6,20 @@ const cors = require("cors");
 require("dotenv").config();
 
 const { setupWebSocket } = require("./src/socket/socket");
+const path = require("path");
 
 const app = express();
 const server = http.createServer(app);
 
+
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
+// Serve uploaded files
+app.use('./uploads', express.static(path.join(__dirname, 'uploads')));
 app.use("/api", router);
+
 
 const PORT = process.env.PORT || 5000;
 
