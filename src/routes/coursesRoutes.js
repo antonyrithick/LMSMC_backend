@@ -5,7 +5,11 @@ const controller = require("../controllers/coursesController");
 const upload = require("../middleware/upload");
 const { verifyToken } = require("../middleware/socketAuth");
 
+// ========================= COURSE MANAGEMENT ROUTES =========================
+
 // ✅ Create course (with token verification and file upload)
+
+
 router.post(
   "/creates",
   verifyToken,
@@ -21,7 +25,9 @@ router.post(
 
 // ✅ Get all courses (usually public, no token required)
 router.get("/all", controller.getAllCourses);
-router.get("/courseoptions",controller.getCourseOptions);
+
+// ✅ Get course options/pricing
+router.get("/courseoptions", controller.getCourseOptions);
 
 // ✅ Get single course (usually public, no token required)
 router.get("/all/:id", controller.getCourse);
@@ -32,16 +38,105 @@ router.put("/edit/:id", verifyToken, controller.updateCourse);
 // ✅ Delete course (protected)
 router.delete("/delete/:id", verifyToken, controller.deleteCourse);
 
-
 // ✅ Enroll student (protected)
 router.post("/:id/enroll", verifyToken, controller.enrollStudent);
-router.get('/:studentid/trainers', verifyToken, controller.getTrainersForStudentCourses);
-router.get('/:trainerid/students', verifyToken, controller.getStudentsForTrainer);
+
 // ✅ Get active/enrolled courses for logged-in student (protected)
+router.get("/active", verifyToken, controller.getActiveCoursesForStudent);
+
+// ✅ Get trainers for student courses
+router.get("/:studentid/trainers", verifyToken, controller.getTrainersForStudentCourses);
+
+// ✅ Get students for trainer courses
+router.get("/:trainerid/students", verifyToken, controller.getStudentsForTrainer);
+
+
+// ========================= CLASS SCHEDULE ROUTES =========================
+
+// ✅ Get student's enrolled courses and classes (Trainer selects from these to allocate)
 router.get(
-  "/active",
-  verifyToken, // makes sure we have authenticated student info
-  controller.getActiveCoursesForStudent
+  "/student/:studentId/enrolled-classes",
+  verifyToken,
+  controller.getStudentEnrolledClasses
 );
+
+// ✅ Allocate single class to student (Trainer only)
+router.post(
+  "/allocate-class",
+  verifyToken,
+  controller.allocateClassToStudent
+);
+
+// ✅ Bulk allocate multiple classes to student (Trainer only)
+router.post(
+  "/bulk-allocate-classes",
+  verifyToken,
+  controller.bulkAllocateClasses
+);
+
+// ✅ Get schedules for a specific student
+router.get(
+  "/schedules/student/:studentId",
+  verifyToken,
+  controller.getStudentSchedules
+);
+
+// ✅ Get schedules for all students (if needed)
+router.get(
+  "/schedules/student",
+  verifyToken,
+  controller.getStudentSchedules
+);
+
+// ✅ Get schedules for a specific trainer
+router.get(
+  "/schedules/trainer/:trainerId",
+  verifyToken,
+  controller.getTrainerSchedules
+);
+
+// ✅ Get schedules for all trainers (if needed)
+router.get(
+  "/schedules/trainer",
+  verifyToken,
+  controller.getTrainerSchedules
+);
+
+// ✅ Get single schedule by ID
+router.get(
+  "/schedule/:scheduleId",
+  verifyToken,
+  controller.getScheduleById
+);
+
+
+
+router.get(
+  "/reports/trainer/:trainerId",
+  verifyToken,
+  controller.getreports
+);
+
+// ✅ Update schedule (date, time, status, notes)
+router.put(
+  "/schedule/:scheduleId",
+  verifyToken,
+  controller.updateSchedule
+);
+
+router.delete(
+  "/schedule/:scheduleId",
+  verifyToken,
+  controller.deleteSchedule
+);
+
+const googleAuthController = require('../controllers/googleAuthController');
+
+// Google OAuth routes
+router.get('/auth/google/initiate', verifyToken, googleAuthController.initiateGoogleAuth);
+
+router.get('/auth/google/callback', googleAuthController.googleAuthCallback);
+router.get('/auth/google/status', verifyToken, googleAuthController.checkGoogleConnection);
+router.post('/auth/google/disconnect', verifyToken, googleAuthController.disconnectGoogle);
 
 module.exports = router;

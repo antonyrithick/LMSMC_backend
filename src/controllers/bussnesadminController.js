@@ -6,36 +6,61 @@ const { Op } = require("sequelize");
 // Get all students report (all enrollments with student info)
 const getAllStudentReports = async (req, res) => {
   try {
+    // Fetch all enrollments with student, course, and trainer info
     const enrollments = await Enrollment.findAll({
       include: [
         {
           model: User,
-          as: "student", // must match Enrollment.belongsTo(User, { as: "student" })
-          attributes: ["id", "name", "email", "createdAt"]
+          as: "student", // make sure Enrollment.belongsTo(User, { as: "student" })
+          attributes: ["id", "name", "email", "createdAt"],
         },
         {
           model: Course,
           as: "course",
-          attributes: ["id", "title", "duration"]
+          attributes: ["id", "title", "duration"],
         },
         {
           model: User,
-          as: "trainer", // must match Enrollment.belongsTo(User, { as: "trainer" })
+          as: "trainer", // make sure Enrollment.belongsTo(User, { as: "trainer" })
           attributes: ["id", "name", "email"],
-          required: false
-        }
+          required: false,
+        },
       ],
-      order: [["createdAt", "DESC"]]
+      order: [["createdAt", "DESC"]],
     });
 
-    // Add summary statistics
+    // Summary statistics
     const totalEnrollments = enrollments.length;
-    const assignedTrainers = enrollments.filter(e => e.trainer).length;
+    const assignedTrainers = enrollments.filter((e) => e.trainer).length;
     const pendingAssignments = totalEnrollments - assignedTrainers;
+
     const statusCounts = enrollments.reduce((acc, enrollment) => {
       acc[enrollment.status] = (acc[enrollment.status] || 0) + 1;
       return acc;
     }, {});
+
+    // Count students handled per trainer
+    const trainersMap = {};
+    enrollments.forEach((e) => {
+      if (e.trainer) {
+        if (!trainersMap[e.trainer.id]) {
+          trainersMap[e.trainer.id] = {
+            id: e.trainer.id,
+            name: e.trainer.name,
+            email: e.trainer.email,
+            studentsHandled: new Set(),
+          };
+        }
+        trainersMap[e.trainer.id].studentsHandled.add(e.studentId);
+      }
+    });
+
+    const trainers = Object.values(trainersMap).map((t) => ({
+      id: t.id,
+      name: t.name,
+      email: t.email,
+      studentsHandled: t.studentsHandled.size,
+    }));
 
     res.status(200).json({
       enrollments,
@@ -43,15 +68,15 @@ const getAllStudentReports = async (req, res) => {
         totalEnrollments,
         assignedTrainers,
         pendingAssignments,
-        statusBreakdown: statusCounts
-      }
+        statusBreakdown: statusCounts,
+        trainers, // includes students handled per trainer
+      },
     });
   } catch (error) {
     console.error("Error in getAllStudentReports:", error);
     res.status(500).json({ error: error.message });
   }
 };
-
 
 // Get students report by course id
 const getStudentsByCourse = async (req, res) => {
